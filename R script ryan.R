@@ -1,6 +1,3 @@
-install.packages("devtools")
-devtools::install_github("username/packagename")
-
 library(tidyverse)
 library(dplyr)
 library(ojodb)
