@@ -369,7 +369,37 @@ ggplot(burg_dispsum3rd20, aes(file_month, n, color = 'court')) +
   ggtitle("Number of 3rd Degree Burg  Disps Filed in OSCN Counties 2020") +
   scale_color_manual(values = ojo_pal)
 
-#Add PWI disps next
+#Possession with intent to distribute dispositions
+
+PWI19disp <- dispsall19 %>%
+  mutate(Drug = str_detect(disp_desc, "DRUG") & str_detect(disp_desc, "POSSESSION|DIST") & !str_detect(disp_desc, "TOOL")) %>%
+  filter(Drug == TRUE)
+
+PWI20disp <- dispsall20 %>%
+  mutate(Drug = str_detect(disp_desc, "DRUG") & str_detect(disp_desc, "POSSESSION|DIST") & !str_detect(disp_desc, "TOOL")) %>%
+  filter(Drug == TRUE)
+
+PWI_dispsum19 <- PWI19disp %>%
+  mutate(file_month = floor_date(ymd(disp_date), 'month')) %>%
+  count(file_month)
+
+PWI_dispsum20 <- PWI20disp %>%
+  mutate(file_month = floor_date(ymd(disp_date), 'month')) %>%
+  count(file_month)
+
+ggplot(PWI_dispsum20, aes(file_month, n, color = 'court')) +
+  geom_line() +
+  theme_ojo() +
+  ylim(0, NA) +
+  ggtitle("Number of PWI  Disps in OSCN Counties 2020") +
+  scale_color_manual(values = ojo_pal)
+
+ggplot(PWI_dispsum19, aes(file_month, n, color = 'court')) +
+  geom_line() +
+  theme_ojo() +
+  ylim(0, NA) +
+  ggtitle("Number of PWI Disps in OSCN Counties 2019") +
+  scale_color_manual(values = ojo_pal)
 
 #LATER-- Comparing top with bottom income counties
 #This code is not finished 
