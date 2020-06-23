@@ -8,7 +8,7 @@ ojo_list_tables()
 dbListFields(ojo_db, 'oscn_crim_disps')
 
 #NOTE TO RYAN-- I left notes explaining all code and some have questions (all caps)
-#Also-- these variable names are already messy. I'm going to be changing them all today
+#Also-- these variable names are messy. I'm going to be changing them all today
 
 #This is the variable for cases in ALL OSCN counties
 
