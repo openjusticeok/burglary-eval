@@ -181,15 +181,17 @@ ggplot(burg_sum3rd20, aes(file_month, n, color = 'court')) +
 
 
 ### This is great work! To shorten this iteration, we can query both years at the same time: ####
+library(ojo)
+connect_ojo()
 
 casesall <- ojo_tbl('ojo_crim_cases') %>%
-  filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2019, casetype == "CF") %>%
+  filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2018, casetype == "CF") %>%
   collect()
 
 ### Same as your code, but for both years
 burgall <- casesall %>%
   mutate(burglary = str_detect(top_ct_desc, "BURGLARY") & !str_detect(top_ct_desc, "TOOL")) %>%
-  filter(burglary == TRUE)
+  filter(burglary == TRUE, file_date > ymd("2017-01-01"))
 
 ### Now, instead of creating a new dataframe for each category of burglary, we can create a new variable that tells us which one it is. Look at the ?case_when function - super useful in these situations. It's basically a long if-then statement. If you detect "FIRST" in top_ct_desc, then put "FIRST DEGREE". If not, then look for "SECOND", etc.
 
@@ -208,10 +210,23 @@ burg_sum <- burgall %>%
 
 ggplot(burg_sum, aes(file_month, n, group = burg_cat, color = burg_cat)) +
   geom_line() +
+  geom_vline(aes(xintercept = ymd("2018-11-01"))) +
   theme_ojo() +
   ylim(0, NA) +
   ggtitle("Number of Burglary Cases Filed in OSCN Counties") +
   scale_color_manual(values = ojo_pal)
+
+casesall %>%
+  mutate(file_month = floor_date(ymd(file_date), 'month')) %>%
+  count(file_month) %>%
+  filter(file_month > ymd("2017-01-01")) %>%
+  ggplot(aes(file_month, n)) +
+  geom_line() +
+  theme_ojo() +
+  ylim(0, NA) +
+  ggtitle("Number of Felony Cases Filed in OSCN Counties") +
+  scale_color_manual(values = ojo_pal)
+
 
 #Possession with intent to distribute (NOTE TO RYAN-- I'm GOING TO LOOK THROUGH LATER, BUT DO YOU THINK MY STR_DETECT TERMS ARE OK?)
 
