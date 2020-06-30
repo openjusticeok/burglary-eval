@@ -169,4 +169,3 @@ myts <- ts(ds, start=c(2018, 11), end=c(2020, 06), frequency=12)
 # plot series
 plot(myts)
 
-
