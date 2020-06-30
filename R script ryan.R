@@ -8,7 +8,7 @@ ojo_list_tables()
 dbListFields(ojo_db, 'oscn_crim_disps')
 
 
-### query both years at the same time: ####
+### query both years at the same time ####
 
 casesall <- ojo_tbl('ojo_crim_cases') %>%
   filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2018, casetype == "CF") %>%
