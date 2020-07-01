@@ -7,7 +7,6 @@ ojo_list_tables()
 #list of variables in table
 dbListFields(ojo_db, 'oscn_crim_disps')
 
-
 ### query both years at the same time ####
 
 casesall <- ojo_tbl('ojo_crim_cases') %>%
@@ -33,7 +32,6 @@ burgall <- burgall %>%
 ##One of the best habits you can get in is recognizing when you're repeating things a lot 
 ##and think about how you can let the machine do that work for you. Takes a lot of practice, but very worth it!
 
-#Starts in 2019 not 2018 for some reason??? 
 burg_sum <- burgall %>%
   count(file_month, burg_cat) # Counting two variables looks for all unique combinations - look at burg_sum to see what it does
 
@@ -45,6 +43,7 @@ ggplot(burg_sum, aes(file_month, n, group = burg_cat, color = burg_cat)) +
   geom_line() +
   geom_vline(aes(xintercept = ymd("2018-11-01"))) +
   theme_ojo() +
+  xlim(ymd("2018-01-01"), NA) +
   ylim(0, NA) +
   ggtitle("Number of Burglary Cases Filed in OSCN Counties") +
   scale_color_manual(values = ojo_pal)
@@ -64,8 +63,13 @@ casesall %>%
 
 disps1820 <- ojo_tbl('oscn_crim_disps') %>%
   filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2018, casetype == "CF") %>%
-  collect() %>%
-  view
+  collect() 
+
+
+dispsall1820 <- disps1820 %>%
+  mutate(burglary = str_detect(disp_desc, "BURGLARY") & !str_detect(disp_desc, "TOOL")) %>%
+  filter(burglary == TRUE)
+
 
 dispsall1820 <- disps1820 %>%
   mutate(burg_cat = case_when(str_detect(disp_desc, "FIRST|1") ~ "FIRST DEGREE",
@@ -85,67 +89,44 @@ ggplot(disps_sum1820, aes(file_month, n, group = burg_cat, color = burg_cat)) +
   scale_color_manual(values = ojo_pal)
 
 #Possession with intent to distribute (not condensed code yet)
+#PWI condensed code 
 
-PWI19 <- casesall19 %>%
+PWI1920 <- casesall %>%
   mutate(Drug = str_detect(top_ct_desc, "DRUG") & str_detect(top_ct_desc, "POSSESSION|DIST") & !str_detect(top_ct_desc, "TOOL")) %>%
   filter(Drug == TRUE)
 
-PWI20 <- casesall20 %>%
-  mutate(Drug = str_detect(top_ct_desc, "DRUG") & str_detect(top_ct_desc, "POSSESSION|DIST") & !str_detect(top_ct_desc, "TOOL")) %>%
-  filter(Drug == TRUE)
-
-PWI_sum19 <- PWI19 %>%
+PWI_sum1920 <- PWI1920 %>%
   mutate(file_month = floor_date(ymd(file_date), 'month')) %>%
   count(file_month)
 
-PWI_sum20 <- PWI20 %>%
-  mutate(file_month = floor_date(ymd(file_date), 'month')) %>%
-  count(file_month)
-
-ggplot(PWI_sum20, aes(file_month, n, color = 'court')) +
+ggplot(PWI_sum1920, aes(file_month, n, color = 'court')) +
   geom_line() +
   theme_ojo() +
   ylim(0, NA) +
-  ggtitle("Number of PWI  Cases Filed in OSCN Counties 2020") +
-  scale_color_manual(values = ojo_pal)
-
-ggplot(PWI_sum19, aes(file_month, n, color = 'court')) +
-  geom_line() +
-  theme_ojo() +
-  ylim(0, NA) +
-  ggtitle("Number of PWI Cases Filed in OSCN Counties 2019") +
+  ggtitle("Number of PWI  Cases Filed in OSCN Counties 2019-2020") +
   scale_color_manual(values = ojo_pal)
 
 #Possession with intent to distribute DISPS
 
-PWI19disp <- dispsall19 %>%
+#need to get dispsall19 AND 20 together
+
+disps1920 <- ojo_tbl('oscn_crim_disps') %>%
+  filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2019, casetype == "CF") %>%
+  collect()
+
+PWIdisp <- disps1920 %>%
   mutate(Drug = str_detect(disp_desc, "DRUG") & str_detect(disp_desc, "POSSESSION|DIST") & !str_detect(disp_desc, "TOOL")) %>%
   filter(Drug == TRUE)
 
-PWI20disp <- dispsall20 %>%
-  mutate(Drug = str_detect(disp_desc, "DRUG") & str_detect(disp_desc, "POSSESSION|DIST") & !str_detect(disp_desc, "TOOL")) %>%
-  filter(Drug == TRUE)
-
-PWI_dispsum19 <- PWI19disp %>%
+PWI_dispsum <- PWIdisp %>%
   mutate(file_month = floor_date(ymd(disp_date), 'month')) %>%
   count(file_month)
 
-PWI_dispsum20 <- PWI20disp %>%
-  mutate(file_month = floor_date(ymd(disp_date), 'month')) %>%
-  count(file_month)
-
-ggplot(PWI_dispsum20, aes(file_month, n, color = 'court')) +
+ggplot(PWI_dispsum, aes(file_month, n, color = 'court')) +
   geom_line() +
   theme_ojo() +
   ylim(0, NA) +
-  ggtitle("Number of PWI  Disps in OSCN Counties 2020") +
-  scale_color_manual(values = ojo_pal)
-
-ggplot(PWI_dispsum19, aes(file_month, n, color = 'court')) +
-  geom_line() +
-  theme_ojo() +
-  ylim(0, NA) +
-  ggtitle("Number of PWI Disps in OSCN Counties 2019") +
+  ggtitle("Number of PWI  Disps in OSCN Counties 2019-2020") +
   scale_color_manual(values = ojo_pal)
 
 ###THIS IS SOME OF MY STATS CODE, WORKS FOR DATASET CREATED IN EXCEL
@@ -169,3 +150,15 @@ myts <- ts(ds, start=c(2018, 11), end=c(2020, 06), frequency=12)
 # plot series
 plot(myts)
 
+
+Dummy var code
+
+Billdum <- burg_sum(numbers = 1:3, 
+                    burg_cat = c("SECOND DEGREE", "FIRST DEGREE", "THIRD DEGREE"), 
+                    file_year = as.Date(c("2018", "2019", "2020")), stringsAsFactors = FALSE)
+
+results <- fastDummies::dummy_cols(fastDummies_example)
+knitr::kable(results)
+
+results <- fastDummies::dummy_cols(fastDummies_example, remove_first_dummy = TRUE)
+knitr::kable(results)
