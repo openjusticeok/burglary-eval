@@ -151,9 +151,16 @@ myts <- ts(ds, start=c(2018, 11), end=c(2020, 06), frequency=12)
 plot(myts)
 
 
-Dummy var code
+cor(ds$n_2nd, ds$bill)
 
-Billdum <- burg_sum(numbers = 1:3, 
+linearMod <- lm(n_2nd ~ bill, data=ds)
+print(linearMod)
+summary(linearMod)
+
+
+###Dummy var code (this doesn't work-- still figuring out)
+
+Billdum <- data.frame(numbers = 1:3, 
                     burg_cat = c("SECOND DEGREE", "FIRST DEGREE", "THIRD DEGREE"), 
                     file_year = as.Date(c("2018", "2019", "2020")), stringsAsFactors = FALSE)
 
@@ -162,3 +169,5 @@ knitr::kable(results)
 
 results <- fastDummies::dummy_cols(fastDummies_example, remove_first_dummy = TRUE)
 knitr::kable(results)
+
+
