@@ -5,7 +5,7 @@ connect_ojo()
 #list of tables
 ojo_list_tables()
 #list of variables in table
-dbListFields(ojo_db, 'oscn_crim_disps')
+dbListFields(ojo_db, 'ojo_crim_cases')
 
 ### query both years at the same time ####
 
@@ -17,19 +17,21 @@ burgall <- casesall %>%
   mutate(burglary = str_detect(top_ct_desc, "BURGLARY") & !str_detect(top_ct_desc, "TOOL")) %>%
   filter(burglary == TRUE)
 
-### Now, instead of creating a new dataframe for each category of burglary, 
-###we can create a new variable that tells us which one it is. Look at the ?case_when function - 
-###super useful in these situations. It's basically a long if-then statement. 
+### Now, instead of creating a new dataframe for each category of burglary,
+###we can create a new variable that tells us which one it is. Look at the ?case_when function -
+###super useful in these situations. It's basically a long if-then statement.
 ###If you detect "FIRST" in top_ct_desc, then put "FIRST DEGREE". If not, then look for "SECOND", etc.
 
 burgall <- burgall %>%
-  mutate(burg_cat = case_when(str_detect(top_ct_desc, "FIRST|1") ~ "FIRST DEGREE",
-                              str_detect(top_ct_desc, "SECOND|2") ~ "SECOND DEGREE",
-                              str_detect(top_ct_desc, "THIRD|3") ~ "THIRD DEGREE"),
+  mutate(burg_cat = case_when(str_detect(top_ct_desc, "FIRST|1") |
+                                str_detect(top_ct_stat, "1431") ~ "FIRST DEGREE",
+                              str_detect(top_ct_desc, "SECOND|2|SEOND") |
+                                str_detect(top_ct_stat, "1435$") ~ "SECOND DEGREE",
+                              str_detect(top_ct_desc, "THIRD|3|THRID") ~ "THIRD DEGREE"),
          file_month = floor_date(ymd(file_date), 'month'))
 
-## Now we can summarize them all into one dataframe, avoiding all the repetition above. 
-##One of the best habits you can get in is recognizing when you're repeating things a lot 
+## Now we can summarize them all into one dataframe, avoiding all the repetition above.
+##One of the best habits you can get in is recognizing when you're repeating things a lot
 ##and think about how you can let the machine do that work for you. Takes a lot of practice, but very worth it!
 
 burg_sum <- burgall %>%
@@ -37,7 +39,6 @@ burg_sum <- burgall %>%
 
 ## Plot them all next to each other - makes it easier to see how they interact
 library(ggplot2)
-
 
 ggplot(burg_sum, aes(file_month, n, group = burg_cat, color = burg_cat)) +
   geom_line() +
@@ -59,14 +60,14 @@ casesall %>%
   ggtitle("Number of Felony Cases Filed in OSCN Counties") +
   scale_color_manual(values = ojo_pal)
 
-##Would like to add all counties as their own line next 
+##Would like to add all counties as their own line next ####
 
 #Same but for dispositions:
 
 
 disps1820 <- ojo_tbl('oscn_crim_disps') %>%
   filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2018, casetype == "CF") %>%
-  collect() 
+  collect()
 
 
 dispsall1820 <- disps1820 %>%
@@ -92,7 +93,7 @@ ggplot(disps_sum1820, aes(file_month, n, group = burg_cat, color = burg_cat)) +
   scale_color_manual(values = ojo_pal)
 
 #Possession with intent to distribute
-#PWI condensed code 
+#PWI condensed code
 
 PWI1920 <- casesall %>%
   mutate(Drug = str_detect(top_ct_desc, "DRUG") & str_detect(top_ct_desc, "POSSESSION|DIST") & !str_detect(top_ct_desc, "TOOL")) %>%
@@ -130,7 +131,7 @@ ggplot(PWI_dispsum, aes(file_month, n, color = 'court')) +
   ggtitle("Number of PWI  Disps in OSCN Counties 2019-2020") +
   scale_color_manual(values = ojo_pal)
 
-###THIS IS SOME OF MY STATS CODE, WORKS FOR DATASET CREATED IN EXCEL
+###THIS IS SOME OF MY STATS CODE, WORKS FOR DATASET CREATED IN EXCEL ####
 
 library(tidyverse)
 library(dplyr)
@@ -146,7 +147,7 @@ t.test(n_2nd ~ bill, data = ds)
 
 t.test(n_2nd + Month ~ bill, data = ds)
 
-# control for seasonality 
+# control for seasonality
 
 lm(formula = n_2nd ~ bill + ds$Month, data = ds)
 
@@ -165,10 +166,49 @@ print(linearMod)
 summary(linearMod)
 
 
-###Dummy var code (this doesn't work-- still figuring out)
+###Dummy var code (this doesn't work-- still figuring out) ####
 
-Billdum <- data.frame(numbers = 1:3, 
-                    burg_cat = c("SECOND DEGREE", "FIRST DEGREE", "THIRD DEGREE"), 
+### Inspect burg_cat NAs ####
+burgall %>%
+  filter(is.na(burg_cat)) %>%
+  view
+
+### Create dummy variable for implementation of burg 3
+burg_sum <- burg_sum %>%
+  mutate(burg_reform = if_else(file_month >= ymd("2018-11-01"),
+                               1,
+                               0),
+         moy = month(file_month, label = TRUE) %>%
+           as.character) %>%
+  filter(year(file_month) >= 2018)
+
+?month
+
+### Linear model
+burg2_sum <- burg_sum %>%
+  filter(burg_cat == "SECOND DEGREE")
+
+linearMod <- lm(n ~ burg_reform + moy,
+                 data = burg2_sum)
+
+print(linearMod)
+summary(linearMod)
+
+###
+burg1_sum <- burg_sum %>%
+  filter(burg_cat == "FIRST DEGREE")
+
+linearMod <- lm(n ~ burg_reform + moy,
+                data = burg1_sum)
+
+print(linearMod)
+summary(linearMod)
+
+
+
+
+Billdum <- data.frame(numbers = 1:3,
+                    burg_cat = c("SECOND DEGREE", "FIRST DEGREE", "THIRD DEGREE"),
                     file_year = as.Date(c("2018", "2019", "2020")), stringsAsFactors = FALSE)
 
 results <- fastDummies::dummy_cols(fastDummies_example)
