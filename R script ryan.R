@@ -37,7 +37,7 @@ burg_sum <- burgall %>%
 
 ## Plot them all next to each other - makes it easier to see how they interact
 library(ggplot2)
-##GRAPH NEEDS AN XLIM MAYBE? SOMETHINGS WRONG
+
 
 ggplot(burg_sum, aes(file_month, n, group = burg_cat, color = burg_cat)) +
   geom_line() +
@@ -59,7 +59,10 @@ casesall %>%
   ggtitle("Number of Felony Cases Filed in OSCN Counties") +
   scale_color_manual(values = ojo_pal)
 
+##Would like to add all counties as their own line next 
+
 #Same but for dispositions:
+
 
 disps1820 <- ojo_tbl('oscn_crim_disps') %>%
   filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2018, casetype == "CF") %>%
@@ -88,7 +91,7 @@ ggplot(disps_sum1820, aes(file_month, n, group = burg_cat, color = burg_cat)) +
   ggtitle("Number of Burglary Dispositions in OSCN Counties in 2018-20") +
   scale_color_manual(values = ojo_pal)
 
-#Possession with intent to distribute (not condensed code yet)
+#Possession with intent to distribute
 #PWI condensed code 
 
 PWI1920 <- casesall %>%
@@ -107,8 +110,6 @@ ggplot(PWI_sum1920, aes(file_month, n, color = 'court')) +
   scale_color_manual(values = ojo_pal)
 
 #Possession with intent to distribute DISPS
-
-#need to get dispsall19 AND 20 together
 
 disps1920 <- ojo_tbl('oscn_crim_disps') %>%
   filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2019, casetype == "CF") %>%
@@ -143,7 +144,11 @@ view(ds)
 
 t.test(n_2nd ~ bill, data = ds)
 
-#lm(formula = n_2nd ~ n_3rd + bill, data = ds)
+t.test(n_2nd + Month ~ bill, data = ds)
+
+# control for seasonality 
+
+lm(formula = n_2nd ~ bill + ds$Month, data = ds)
 
 myts <- ts(ds, start=c(2018, 11), end=c(2020, 06), frequency=12)
 
@@ -153,7 +158,9 @@ plot(myts)
 
 cor(ds$n_2nd, ds$bill)
 
-linearMod <- lm(n_2nd ~ bill, data=ds)
+###THIS WORKS
+
+linearMod <- lm(n_2nd ~ bill +ds$Month, data=ds)
 print(linearMod)
 summary(linearMod)
 
@@ -170,4 +177,26 @@ knitr::kable(results)
 results <- fastDummies::dummy_cols(fastDummies_example, remove_first_dummy = TRUE)
 knitr::kable(results)
 
+## trying to create a subset
 
+burgds <- burgall %>%
+  mutate(burg_2nd = case_when(str_detect(top_ct_desc, "SECOND|2") ~ "SECOND DEGREE"),
+         burg_3rd = case_when(str_detect(top_ct_desc, "THIRD|3") ~ "THIRD DEGREE"),
+         file_month = floor_date(ymd(file_date), 'month'))
+
+burgds <- burgds %>%
+  count(file_month, burg_2nd, burg_3rd)
+
+billdum <- burgall %>%
+  mutate(1 = case_when(floor_date(ymd(file_date > "2018-11-01"))),
+         0 = case_when(floor_date(ymd(file_date < "2018-11-01"))))
+
+##need to create dummy for bill 0 or 1
+## ask about NAs in burgds-- do I remove? were these uncategorized as 1st, 2nd, etc
+
+sub <- burg_sum %>%
+  dplyr::select("file_month", "burg_cat") %>%
+  na.omit()
+
+summary(sub)
+##TODAY: Work on doing stats on PWI and disps (cases done above) on 3rd burg
