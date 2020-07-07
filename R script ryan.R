@@ -1,5 +1,6 @@
 library(tidyverse)
 library(dplyr)
+library(plotly)
 library(ojodb)
 connect_ojo()
 #list of tables
@@ -12,7 +13,6 @@ dbListFields(ojo_db, 'ojo_crim_cases')
 casesall <- ojo_tbl('ojo_crim_cases') %>%
   filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2018, casetype == "CF") %>%
   collect()
-
 burgall <- casesall %>%
   mutate(burglary = str_detect(top_ct_desc, "BURGLARY") & !str_detect(top_ct_desc, "TOOL")) %>%
   filter(burglary == TRUE)
@@ -36,7 +36,6 @@ burgall <- burgall %>%
 
 burg_sum <- burgall %>%
   count(file_month, burg_cat) # Counting two variables looks for all unique combinations - look at burg_sum to see what it does
-
 ## Plot them all next to each other - makes it easier to see how they interact
 library(ggplot2)
 
@@ -60,8 +59,6 @@ casesall %>%
   ggtitle("Number of Felony Cases Filed in OSCN Counties") +
   scale_color_manual(values = ojo_pal)
 
-##Would like to add all counties as their own line next ####
-
 #Same but for dispositions:
 
 
@@ -69,11 +66,9 @@ disps1820 <- ojo_tbl('oscn_crim_disps') %>%
   filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2018, casetype == "CF") %>%
   collect()
 
-
 dispsall1820 <- disps1820 %>%
   mutate(burglary = str_detect(disp_desc, "BURGLARY") & !str_detect(disp_desc, "TOOL")) %>%
   filter(burglary == TRUE)
-
 
 dispsall1820 <- disps1820 %>%
   mutate(burg_cat = case_when(str_detect(disp_desc, "FIRST|1") ~ "FIRST DEGREE",
@@ -84,7 +79,6 @@ dispsall1820 <- disps1820 %>%
 disps_sum1820 <- dispsall1820 %>%
   count(file_month, burg_cat) # Counting two variables looks for all unique combinations - look at burg_sum to see what it does
 
-
 ggplot(disps_sum1820, aes(file_month, n, group = burg_cat, color = burg_cat)) +
   geom_line() +
   theme_ojo() +
@@ -92,81 +86,7 @@ ggplot(disps_sum1820, aes(file_month, n, group = burg_cat, color = burg_cat)) +
   ggtitle("Number of Burglary Dispositions in OSCN Counties in 2018-20") +
   scale_color_manual(values = ojo_pal)
 
-#Possession with intent to distribute
-#PWI condensed code
-
-PWI1920 <- casesall %>%
-  mutate(Drug = str_detect(top_ct_desc, "DRUG") & str_detect(top_ct_desc, "POSSESSION|DIST") & !str_detect(top_ct_desc, "TOOL")) %>%
-  filter(Drug == TRUE)
-
-PWI_sum1920 <- PWI1920 %>%
-  mutate(file_month = floor_date(ymd(file_date), 'month')) %>%
-  count(file_month)
-
-ggplot(PWI_sum1920, aes(file_month, n, color = 'court')) +
-  geom_line() +
-  theme_ojo() +
-  ylim(0, NA) +
-  ggtitle("Number of PWI  Cases Filed in OSCN Counties 2019-2020") +
-  scale_color_manual(values = ojo_pal)
-
-#Possession with intent to distribute DISPS
-
-disps1920 <- ojo_tbl('oscn_crim_disps') %>%
-  filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2019, casetype == "CF") %>%
-  collect()
-
-PWIdisp <- disps1920 %>%
-  mutate(Drug = str_detect(disp_desc, "DRUG") & str_detect(disp_desc, "POSSESSION|DIST") & !str_detect(disp_desc, "TOOL")) %>%
-  filter(Drug == TRUE)
-
-PWI_dispsum <- PWIdisp %>%
-  mutate(file_month = floor_date(ymd(disp_date), 'month')) %>%
-  count(file_month)
-
-ggplot(PWI_dispsum, aes(file_month, n, color = 'court')) +
-  geom_line() +
-  theme_ojo() +
-  ylim(0, NA) +
-  ggtitle("Number of PWI  Disps in OSCN Counties 2019-2020") +
-  scale_color_manual(values = ojo_pal)
-
-###THIS IS SOME OF MY STATS CODE, WORKS FOR DATASET CREATED IN EXCEL ####
-
-library(tidyverse)
-library(dplyr)
-library(plotly)
-library(hrbrthemes)
-library(ggplot2)
-
-ds <- read_csv("/Users/14057/Documents/OJOds.csv")
-
-view(ds)
-
-t.test(n_2nd ~ bill, data = ds)
-
-t.test(n_2nd + Month ~ bill, data = ds)
-
-# control for seasonality
-
-lm(formula = n_2nd ~ bill + ds$Month, data = ds)
-
-myts <- ts(ds, start=c(2018, 11), end=c(2020, 06), frequency=12)
-
-# plot series
-plot(myts)
-
-
-cor(ds$n_2nd, ds$bill)
-
-###THIS WORKS
-
-linearMod <- lm(n_2nd ~ bill +ds$Month, data=ds)
-print(linearMod)
-summary(linearMod)
-
-
-###Dummy var code (this doesn't work-- still figuring out) ####
+###Dummy var code WORKING  ####
 
 ### Inspect burg_cat NAs ####
 burgall %>%
@@ -189,7 +109,7 @@ burg2_sum <- burg_sum %>%
   filter(burg_cat == "SECOND DEGREE")
 
 linearMod <- lm(n ~ burg_reform + moy,
-                 data = burg2_sum)
+                data = burg2_sum)
 
 print(linearMod)
 summary(linearMod)
@@ -198,45 +118,55 @@ summary(linearMod)
 burg1_sum <- burg_sum %>%
   filter(burg_cat == "FIRST DEGREE")
 
-linearMod <- lm(n ~ burg_reform + moy,
-                data = burg1_sum)
+linearMod1 <- lm(n ~ burg_reform + moy,
+                 data = burg1_sum)
 
-print(linearMod)
-summary(linearMod)
+print(linearMod1)
+summary(linearMod1)
+
+##DISPOSITIONS
+
+disps1820 <- ojo_tbl('oscn_crim_disps') %>%
+  filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2018, casetype == "CF") %>%
+  collect()
+
+dispsall1820 <- disps1820 %>%
+  mutate(burglary = str_detect(disp_desc, "BURGLARY") & !str_detect(disp_desc, "TOOL")) %>%
+  filter(burglary == TRUE)
+
+dispsall1820 <- disps1820 %>%
+  mutate(burg_cat = case_when(str_detect(disp_desc, "FIRST|1") |
+                                str_detect(ct_stat, "1431") ~ "FIRST DEGREE",
+                              str_detect(disp_desc, "SECOND|2|SEOND") |
+                                str_detect(ct_stat, "1435$") ~ "SECOND DEGREE",
+                              str_detect(disp_desc, "THIRD|3|THRID") ~ "THIRD DEGREE"),
+         file_month = floor_date(ymd(disp_date), 'month'))
+
+dispsall1820 %>%
+  filter(is.na(burg_cat)) %>%
+  view
 
 
+disps_sum1820 <- dispsall1820 %>%
+  count(file_month, burg_cat) # Counting two variables looks for all unique combinations - look at burg_sum to see what it does
 
 
-Billdum <- data.frame(numbers = 1:3,
-                    burg_cat = c("SECOND DEGREE", "FIRST DEGREE", "THIRD DEGREE"),
-                    file_year = as.Date(c("2018", "2019", "2020")), stringsAsFactors = FALSE)
+disps_sum1820 <- disps_sum1820 %>%
+  mutate(burg_reform = if_else(file_month >= ymd("2018-11-01"),
+                               1,
+                               0),
+         moy = month(file_month, label = TRUE) %>%
+           as.character) %>%
+  filter(year(file_month) >= 2018)
 
-results <- fastDummies::dummy_cols(fastDummies_example)
-knitr::kable(results)
+### Linear model
+burg2_disp <- disps_sum1820 %>%
+  filter(burg_cat == "SECOND DEGREE")
 
-results <- fastDummies::dummy_cols(fastDummies_example, remove_first_dummy = TRUE)
-knitr::kable(results)
+linearMod2 <- lm(n ~ burg_reform + moy,
+                 data = burg2_disp)
 
-## trying to create a subset
+print(linearMod2)
+summary(linearMod2)
 
-burgds <- burgall %>%
-  mutate(burg_2nd = case_when(str_detect(top_ct_desc, "SECOND|2") ~ "SECOND DEGREE"),
-         burg_3rd = case_when(str_detect(top_ct_desc, "THIRD|3") ~ "THIRD DEGREE"),
-         file_month = floor_date(ymd(file_date), 'month'))
-
-burgds <- burgds %>%
-  count(file_month, burg_2nd, burg_3rd)
-
-billdum <- burgall %>%
-  mutate(1 = case_when(floor_date(ymd(file_date > "2018-11-01"))),
-         0 = case_when(floor_date(ymd(file_date < "2018-11-01"))))
-
-##need to create dummy for bill 0 or 1
-## ask about NAs in burgds-- do I remove? were these uncategorized as 1st, 2nd, etc
-
-sub <- burg_sum %>%
-  dplyr::select("file_month", "burg_cat") %>%
-  na.omit()
-
-summary(sub)
-##TODAY: Work on doing stats on PWI and disps (cases done above) on 3rd burg
+#need to get rid of NAs (still a lot of them for disps)
