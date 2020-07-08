@@ -131,14 +131,14 @@ disps1820 <- ojo_tbl('oscn_crim_disps') %>%
   collect()
 
 dispsall1820 <- disps1820 %>%
-  mutate(burglary = str_detect(disp_desc, "BURGLARY") & !str_detect(disp_desc, "TOOL")) %>%
+  mutate(burglary = str_detect(ct_desc, "BURGLARY") & !str_detect(ct_desc, "TOOL")) %>%
   filter(burglary == TRUE)
 
-dispsall1820 <- disps1820 %>%
+dispsall1820 <- dispsall1820 %>%
   mutate(burg_cat = case_when(str_detect(disp_desc, "FIRST|1") |
-                                str_detect(ct_stat, "1431") ~ "FIRST DEGREE",
+                                str_detect(disp_stat, "1431") ~ "FIRST DEGREE",
                               str_detect(disp_desc, "SECOND|2|SEOND") |
-                                str_detect(ct_stat, "1435$") ~ "SECOND DEGREE",
+                                str_detect(disp_stat, "1435$") ~ "SECOND DEGREE",
                               str_detect(disp_desc, "THIRD|3|THRID") ~ "THIRD DEGREE"),
          file_month = floor_date(ymd(disp_date), 'month'))
 
@@ -168,5 +168,28 @@ linearMod2 <- lm(n ~ burg_reform + moy,
 
 print(linearMod2)
 summary(linearMod2)
+
+### FIRST DEGREE 
+
+burg1disp_sum <- disps_sum1820 %>%
+  filter(burg_cat == "FIRST DEGREE")
+
+linearMod1disp <- lm(n ~ burg_reform + moy,
+                 data = burg1disp_sum)
+
+print(linearMod1disp)
+summary(linearMod1disp)
+
+###THIRD DEGREE
+
+burg3disp_sum <- disps_sum1820 %>%
+  filter(burg_cat == "THIRD DEGREE")
+
+linearMod3disp <- lm(n ~ burg_reform + moy,
+                     data = burg3disp_sum)
+
+print(linearMod3disp)
+summary(linearMod3disp)
+
 
 #need to get rid of NAs (still a lot of them for disps)
