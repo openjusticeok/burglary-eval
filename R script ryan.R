@@ -87,15 +87,15 @@ summary(linearMod1)
 
 ##DISPOSITIONS
 
-disps1820 <- ojo_tbl('oscn_crim_disps') %>%
-  filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2018, casetype == "CF") %>%
+disps1720 <- ojo_tbl('oscn_crim_disps') %>%
+  filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2017, casetype == "CF") %>%
   collect()
 
-dispsall1820 <- disps1820 %>%
+dispsall1720 <- disps1720 %>%
   mutate(burglary = str_detect(ct_desc, "BURGLARY") & !str_detect(ct_desc, "TOOL")) %>%
   filter(burglary == TRUE)
 
-dispsall1820 <- dispsall1820 %>%
+dispsall1720 <- dispsall1720 %>%
   mutate(burg_cat = case_when(str_detect(disp_desc, "FIRST|1") |
                                 str_detect(disp_stat, "1431") ~ "FIRST DEGREE",
                               str_detect(disp_desc, "SECOND|2|SEOND") |
@@ -103,28 +103,29 @@ dispsall1820 <- dispsall1820 %>%
                               str_detect(disp_desc, "THIRD|3|THRID") ~ "THIRD DEGREE"),
          file_month = floor_date(ymd(disp_date), 'month'))
 
-dispsall1820 %>%
+dispsall1720 %>%
   filter(is.na(burg_cat)) %>%
   view
 
 
-disps_sum1820 <- dispsall1820 %>%
+disps_sum1720 <- dispsall1720 %>%
   count(file_month, burg_cat) # Counting two variables looks for all unique combinations - look at burg_sum to see what it does
 
 
-disps_sum1820 <- disps_sum1820 %>%
+disps_sum1720 <- disps_sum1720 %>%
   mutate(burg_reform = if_else(file_month >= ymd("2018-11-01"),
                                1,
                                0),
          moy = month(file_month, label = TRUE) %>%
            as.character) %>%
-  filter(year(file_month) >= 2018)
+  filter(year(file_month) >= 2017)
 
-ggplot(disps_sum1820, aes(file_month, n, group = burg_cat, color = burg_cat)) +
+ggplot(disps_sum1720, aes(file_month, n, group = burg_cat, color = burg_cat)) +
   geom_line() +
+  geom_vline(aes(xintercept = ymd("2018-11-01"))) +
   theme_ojo() +
   ylim(0, NA) +
-  ggtitle("Number of Burglary Dispositions in OSCN Counties in 2018-20") +
+  ggtitle("Number of Burglary Dispositions in OSCN Counties in 2017-20") +
   scale_color_manual(values = ojo_pal)
 
 ### Linear model
