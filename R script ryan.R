@@ -31,9 +31,14 @@ ggplot(burg_sum, aes(file_month, n, group = burg_cat, color = burg_cat)) +
   geom_vline(aes(xintercept = ymd("2018-11-01"))) +
   theme_ojo() +
   xlim(ymd("2018-01-01"), NA) +
+  labs(x = "Month and Year Filed", y = "Number of Cases") +
+  labs(color = "Burglary Category") +
   ylim(0, NA) +
   ggtitle("Number of Burglary Cases Filed in OSCN Counties") +
   scale_color_manual(values = ojo_pal)
+
+#### Took out theme_ojo() + so I could get rid of grid lines/make plot more usable
+#### Check on font to see if I can add OJO font/font size while keeping it like this
 
 casesall %>%
   mutate(file_month = floor_date(ymd(file_date), 'month')) %>%
@@ -41,6 +46,7 @@ casesall %>%
   filter(file_month > ymd("2017-01-01")) %>%
   ggplot(aes(file_month, n)) +
   geom_line() +
+  labs(x = "Month and Year Filed", y = "Number of Cases") +
   theme_ojo() +
   ylim(0, NA) +
   ggtitle("Number of Felony Cases Filed in OSCN Counties") +
@@ -128,6 +134,7 @@ ggplot(disps_sum1720, aes(file_month, n, group = burg_cat, color = burg_cat)) +
   ggtitle("Number of Burglary Dispositions in OSCN Counties in 2017-20") +
   scale_color_manual(values = ojo_pal)
 
+
 ### Linear model
 burg2_disp <- disps_sum1820 %>%
   filter(burg_cat == "SECOND DEGREE")
@@ -149,4 +156,59 @@ linearMod1disp <- lm(n ~ burg_reform + moy,
 print(linearMod1disp)
 summary(linearMod1disp)
 
+#doc sentences code
+
+s <- ojo_tbl("doc_sentences") %>%
+  filter(js_date > "2010-01-01", !is.na(doc_incarcerated_term_yrs)) %>%
+  select(doc_num, statute_code, js_date, doc_incarcerated_term_yrs) %>% 
+  left_join(ojo_tbl("doc_offense")) %>% 
+  collect()
+
+
+docburg <- s %>%
+  mutate(burglary = str_detect(statute_desc, "BURGLARY") & !str_detect(statute_desc, "TOOL")) %>%
+  filter(burglary == TRUE) %>%
+  view()
+
+docburg <- docburg %>%
+  mutate(burg_cat = case_when(str_detect(statute_desc, "FIRST|1") |
+                                str_detect(statute_code, "1431") ~ "FIRST DEGREE",
+                              str_detect(statute_desc, "SECOND|2|SEOND") |
+                                str_detect(statute_code, "1435$") ~ "SECOND DEGREE",
+                              str_detect(statute_desc, "THIRD|3|THRID") ~ "THIRD DEGREE"),
+         file_month = floor_date(ymd(js_date), 'month'))
+
+docburg_sum <- docburg %>%
+  count(file_month, burg_cat) 
+
+
+docburg_sum <- docburg_sum %>%
+  mutate(burg_reform = if_else(file_month >= ymd("2018-11-01"),
+                               1,
+                               0),
+         moy = month(file_month, label = TRUE) %>%
+           as.character) %>%
+  filter(year(file_month) >= 2010)
+
+
+ggplot(docburg_sum, aes(file_month, n, group = burg_cat, color = burg_cat)) +
+  geom_line() +
+  geom_vline(aes(xintercept = ymd("2018-11-01"))) +
+  theme_ojo() +
+  xlim(ymd("2010-01-01"), NA) +
+  labs(x = "Month and Year Filed", y = "Number of Cases") +
+  labs(color = "Burglary Category") +
+  ylim(0, NA) +
+  ggtitle("Number of Burglary Sentences Files in OSCN Counties 2010-2019") +
+  scale_color_manual(values = ojo_pal)
+
+
+burg2_doc <- docburg_sum %>%
+  filter(burg_cat == "SECOND DEGREE")
+
+linearModdoc <- lm(n ~ burg_reform + moy,
+                 data = burg2_doc)
+
+print(linearModdoc)
+summary(linearModdoc)
 
