@@ -8,7 +8,7 @@ connect_ojo()
 ### CASES Analysis
 
 casesall <- ojo_tbl('ojo_crim_cases') %>%
-  filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2018, casetype == "CF") %>%
+  filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2018, file_date < "2020-03-01", casetype == "CF") %>%
   collect()
 
 burgall <- casesall %>%
@@ -68,7 +68,7 @@ burg_sum <- burg_sum %>%
            as.character) %>%
   filter(year(file_month) >= 2018)
 
-?month
+
 
 ### Linear model
 
@@ -94,7 +94,7 @@ summary(linearMod1)
 ##DISPOSITIONS
 
 disps1720 <- ojo_tbl('oscn_crim_disps') %>%
-  filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2017, casetype == "CF") %>%
+  filter(court %in% c("ADAIR", "CANADIAN", "CLEVELAND", "COMANCHE", "ELLIS", "GARFIELD", "LOGAN", "OKLAHOMA", "PAYNE", "PUSHMATAHA","ROGERMILLS", "ROGERS", "TULSA"), file_year >= 2017, disp_date < "2020-03-01", casetype == "CF") %>%
   collect()
 
 dispsall1720 <- disps1720 %>%
@@ -159,7 +159,7 @@ summary(linearMod1disp)
 #doc sentences code
 
 s <- ojo_tbl("doc_sentences") %>%
-  filter(js_date > "2010-01-01", !is.na(doc_incarcerated_term_yrs)) %>%
+  filter(js_date > "2010-01-01", js_date < "2020-03-01", !is.na(doc_incarcerated_term_yrs)) %>%
   select(doc_num, statute_code, js_date, doc_incarcerated_term_yrs) %>% 
   left_join(ojo_tbl("doc_offense")) %>% 
   collect()
